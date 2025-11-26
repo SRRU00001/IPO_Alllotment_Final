@@ -49,3 +49,14 @@ class IpoApplication(Base):
     __table_args__ = (
         UniqueConstraint('ipo_name', 'user_id', name='unique_user_ipo'),
     )
+
+class OtpStorage(Base):
+    """OTP storage for email verification and password recovery"""
+    __tablename__ = "otp_storage"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), nullable=False, index=True)
+    otp = Column(String(10), nullable=False)
+    purpose = Column(String(20), nullable=False)  # registration/recovery
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())

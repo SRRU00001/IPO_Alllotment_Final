@@ -7,14 +7,14 @@ from typing import Optional, List
 import time
 
 from database import engine, get_db, Base
-from models import User, IpoName, Applicant, IpoApplication
+from models import User, IpoName, Applicant, IpoApplication, OtpStorage
 from auth import (
     get_password_hash, authenticate_user, generate_token,
     get_current_user, get_optional_user
 )
 from email_service import (
     send_verification_otp, send_password_recovery_otp,
-    send_new_password, verify_otp, generate_temp_password, store_otp
+    send_new_password, verify_otp, generate_temp_password
 )
 
 # Create tables
@@ -137,7 +137,7 @@ def register_send_otp(request: SendOtpRequest, db: Session = Depends(get_db)):
         return GenericResponse(success=False, error="Email already registered")
 
     # Send verification OTP
-    success, result = send_verification_otp(request.email, request.username)
+    success, result = send_verification_otp(db, request.email, request.username)
     if success:
         return GenericResponse(success=True, message="OTP sent to your email")
     else:
@@ -147,7 +147,7 @@ def register_send_otp(request: SendOtpRequest, db: Session = Depends(get_db)):
 def register_verify_otp(request: VerifyOtpRequest, db: Session = Depends(get_db)):
     """Verify OTP and complete registration"""
     # Verify OTP
-    if not verify_otp(request.email, request.otp, purpose="registration"):
+    if not verify_otp(db, request.email, request.otp, purpose="registration"):
         return GenericResponse(success=False, error="Invalid or expired OTP")
 
     # Check again if username/email exists (race condition prevention)
@@ -182,7 +182,7 @@ def forgot_password_send_otp(request: ForgotPasswordRequest, db: Session = Depen
         return GenericResponse(success=True, message="If the email exists, an OTP has been sent")
 
     # Send recovery OTP
-    success, result = send_password_recovery_otp(request.email)
+    success, result = send_password_recovery_otp(db, request.email)
     if success:
         return GenericResponse(success=True, message="OTP sent to your email")
     else:
@@ -197,7 +197,7 @@ def forgot_password_verify_otp(request: ResetPasswordRequest, db: Session = Depe
         return GenericResponse(success=False, error="Email not found")
 
     # Verify OTP
-    if not verify_otp(request.email, request.otp, purpose="recovery"):
+    if not verify_otp(db, request.email, request.otp, purpose="recovery"):
         return GenericResponse(success=False, error="Invalid or expired OTP")
 
     # Generate new password

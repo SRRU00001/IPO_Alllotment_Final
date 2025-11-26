@@ -4,15 +4,13 @@ import string
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
+import os
 
-# Gmail SMTP configuration
+# Gmail SMTP configuration - use environment variables for security
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "tesseract.uk.in@gmail.com"
-SENDER_APP_PASSWORD = "jhfb wdil xrcm fgku"
-
-# OTP storage (in production, use Redis or database)
-otp_storage: dict[str, dict] = {}
+SENDER_EMAIL = os.environ.get("SMTP_EMAIL", "tesseract.uk.in@gmail.com")
+SENDER_APP_PASSWORD = os.environ.get("SMTP_PASSWORD", "jhfb wdil xrcm fgku")
 
 def generate_otp(length: int = 6) -> str:
     """Generate a random numeric OTP"""
@@ -23,37 +21,52 @@ def generate_temp_password(length: int = 10) -> str:
     chars = string.ascii_letters + string.digits + "!@#$%"
     return ''.join(random.choices(chars, k=length))
 
-def store_otp(email: str, otp: str, purpose: str = "verification", expires_minutes: int = 10) -> None:
-    """Store OTP with expiration time"""
-    otp_storage[email] = {
-        "otp": otp,
-        "purpose": purpose,
-        "expires_at": datetime.utcnow() + timedelta(minutes=expires_minutes),
-        "created_at": datetime.utcnow()
-    }
+def store_otp(db, email: str, otp: str, purpose: str = "verification", expires_minutes: int = 10) -> None:
+    """Store OTP in database with expiration time"""
+    from models import OtpStorage
 
-def verify_otp(email: str, otp: str, purpose: str = "verification") -> bool:
-    """Verify OTP for email"""
-    if email not in otp_storage:
-        return False
+    # Delete any existing OTP for this email and purpose
+    db.query(OtpStorage).filter(
+        OtpStorage.email == email,
+        OtpStorage.purpose == purpose
+    ).delete()
 
-    stored = otp_storage[email]
+    # Create new OTP entry
+    otp_entry = OtpStorage(
+        email=email,
+        otp=otp,
+        purpose=purpose,
+        expires_at=datetime.utcnow() + timedelta(minutes=expires_minutes)
+    )
+    db.add(otp_entry)
+    db.commit()
 
-    # Check purpose
-    if stored["purpose"] != purpose:
+def verify_otp(db, email: str, otp: str, purpose: str = "verification") -> bool:
+    """Verify OTP from database"""
+    from models import OtpStorage
+
+    # Find OTP entry
+    otp_entry = db.query(OtpStorage).filter(
+        OtpStorage.email == email,
+        OtpStorage.purpose == purpose
+    ).first()
+
+    if not otp_entry:
         return False
 
     # Check expiration
-    if datetime.utcnow() > stored["expires_at"]:
-        del otp_storage[email]
+    if datetime.utcnow() > otp_entry.expires_at:
+        db.delete(otp_entry)
+        db.commit()
         return False
 
     # Check OTP match
-    if stored["otp"] != otp:
+    if otp_entry.otp != otp:
         return False
 
     # OTP verified, remove it
-    del otp_storage[email]
+    db.delete(otp_entry)
+    db.commit()
     return True
 
 def send_email(to_email: str, subject: str, html_body: str) -> tuple[bool, str]:
@@ -80,10 +93,10 @@ def send_email(to_email: str, subject: str, html_body: str) -> tuple[bool, str]:
     except Exception as e:
         return False, f"Failed to send email: {str(e)}"
 
-def send_verification_otp(email: str, username: str) -> tuple[bool, str]:
+def send_verification_otp(db, email: str, username: str) -> tuple[bool, str]:
     """Send verification OTP for registration"""
     otp = generate_otp()
-    store_otp(email, otp, purpose="registration")
+    store_otp(db, email, otp, purpose="registration")
 
     html_body = f"""
     <html>
@@ -107,10 +120,10 @@ def send_verification_otp(email: str, username: str) -> tuple[bool, str]:
     success, message = send_email(email, "IPO Allotment - Verify Your Email", html_body)
     return success, message if not success else otp
 
-def send_password_recovery_otp(email: str) -> tuple[bool, str]:
+def send_password_recovery_otp(db, email: str) -> tuple[bool, str]:
     """Send OTP for password recovery"""
     otp = generate_otp()
-    store_otp(email, otp, purpose="recovery")
+    store_otp(db, email, otp, purpose="recovery")
 
     html_body = f"""
     <html>
