@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { KeyRound, Mail, AlertCircle, Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api';
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
 
 interface ForgotPasswordPageProps {

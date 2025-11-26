@@ -1,6 +1,5 @@
 import type { IpoApplication, IpoApplicationInput, Applicant, ApplicantInput, Ipo, ApiResponse } from '../types';
-
-const DEBUG = import.meta.env.VITE_DEBUG === 'true';
+import { DEBUG } from '../config';
 
 interface RetryConfig {
   maxRetries: number;

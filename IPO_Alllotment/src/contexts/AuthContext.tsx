@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { API_BASE_URL } from '../config';
 
 interface AuthContextType {
   token: string | null;
@@ -12,7 +13,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Get base URL and remove /api suffix for auth endpoints
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000/api';
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
 
 interface AuthProviderProps {
