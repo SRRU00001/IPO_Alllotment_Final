@@ -11,7 +11,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: CORS_ORIGINS
-        value: https://ipo-allotment-frontend.onrender.com
+        value: https://ipo-allotment-frontend-02gb.onrender.com
 
   # Frontend Static Site
   - type: web

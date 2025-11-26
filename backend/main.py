@@ -28,7 +28,7 @@ app = FastAPI(
 
 # CORS middleware - allow frontend to connect
 import os
-CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000,http://localhost:9000").split(",")
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000,http://localhost:9000,https://ipo-allotment-frontend-02gb.onrender.com").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS + ["*"],  # Allow all origins for flexibility

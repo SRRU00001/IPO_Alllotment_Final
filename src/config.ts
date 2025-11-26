@@ -3,7 +3,7 @@
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD
-    ? 'https://ipo-allotment-api.onrender.com/api' // Production backend on Render
+    ? 'https://ipo-allotment-api-6y6d.onrender.com/api' // Production backend on Render
     : 'http://localhost:9000/api' // Development fallback
   );
 
