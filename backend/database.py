@@ -2,11 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-# Get DATABASE_URL from environment (for Neon/PostgreSQL)
+# Get DATABASE_URL from environment or use Neon PostgreSQL
 # Falls back to SQLite for local development
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://neondb_owner:npg_e0KTPYOs3kqj@ep-misty-king-adcnxsc2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require")
 
-if DATABASE_URL:
+if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
     # PostgreSQL (Neon) - fix for SQLAlchemy compatibility
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
