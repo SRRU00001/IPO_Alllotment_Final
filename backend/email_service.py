@@ -1,16 +1,15 @@
-import smtplib
 import random
 import string
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import os
+import urllib.request
+import urllib.error
+import json
 
-# Gmail SMTP configuration - use environment variables for security
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = os.environ.get("SMTP_EMAIL", "tesseract.uk.in@gmail.com")
-SENDER_APP_PASSWORD = os.environ.get("SMTP_PASSWORD", "jhfb wdil xrcm fgku")
+# Resend API configuration (free 100 emails/day)
+# Get your API key from https://resend.com
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "re_ZabKwVhz_DTwd7dbeHvUPvY2phjcYVQtN")
+SENDER_EMAIL = "onboarding@resend.dev"  # Use your verified domain email in production
 
 def generate_otp(length: int = 6) -> str:
     """Generate a random numeric OTP"""
@@ -70,26 +69,38 @@ def verify_otp(db, email: str, otp: str, purpose: str = "verification") -> bool:
     return True
 
 def send_email(to_email: str, subject: str, html_body: str) -> tuple[bool, str]:
-    """Send email using Gmail SMTP"""
+    """Send email using Resend API (HTTP-based, works on Render free tier)"""
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"IPO Allotment <{SENDER_EMAIL}>"
-        msg["To"] = to_email
+        url = "https://api.resend.com/emails"
 
-        html_part = MIMEText(html_body, "html")
-        msg.attach(html_part)
+        data = {
+            "from": f"IPO Allotment <{SENDER_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body
+        }
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_APP_PASSWORD)
-            server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+        headers = {
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json"
+        }
 
-        return True, "Email sent successfully"
-    except smtplib.SMTPAuthenticationError:
-        return False, "Email authentication failed"
-    except smtplib.SMTPException as e:
-        return False, f"SMTP error: {str(e)}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(data).encode('utf-8'),
+            headers=headers,
+            method='POST'
+        )
+
+        with urllib.request.urlopen(req, timeout=30) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            return True, "Email sent successfully"
+
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8')
+        return False, f"Email API error: {error_body}"
+    except urllib.error.URLError as e:
+        return False, f"Network error: {str(e)}"
     except Exception as e:
         return False, f"Failed to send email: {str(e)}"
 
