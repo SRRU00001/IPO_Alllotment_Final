@@ -11,8 +11,7 @@ import { UserManagementModal } from './components/UserManagementModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { Toast } from './components/Toast';
 import { LoginPage } from './components/LoginPage';
-import { RegisterPage } from './components/RegisterPage';
-import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { AdminPage } from './components/AdminPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useFetchRows } from './hooks/useFetchRows';
 import { useIpoList } from './hooks/useIpoList';
@@ -380,7 +379,22 @@ function MainApp() {
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
-  const [authPage, setAuthPage] = useState<'login' | 'register' | 'forgotPassword'>('login');
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  // Listen for URL changes
+  useEffect(() => {
+    const handlePopState = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Check if on admin page
+  const isAdminPage = currentPath === '/UnnayanAdmin' || currentPath === '/unnayanadmin';
+
+  const goToLogin = () => {
+    window.history.pushState({}, '', '/');
+    setCurrentPath('/');
+  };
 
   if (isLoading) {
     return (
@@ -393,19 +407,13 @@ function AppContent() {
     );
   }
 
+  // Show admin page if on admin route (no auth required)
+  if (isAdminPage) {
+    return <AdminPage onBack={goToLogin} />;
+  }
+
   if (!isAuthenticated) {
-    if (authPage === 'register') {
-      return <RegisterPage onBackToLogin={() => setAuthPage('login')} />;
-    }
-    if (authPage === 'forgotPassword') {
-      return <ForgotPasswordPage onBackToLogin={() => setAuthPage('login')} />;
-    }
-    return (
-      <LoginPage
-        onRegister={() => setAuthPage('register')}
-        onForgotPassword={() => setAuthPage('forgotPassword')}
-      />
-    );
+    return <LoginPage />;
   }
 
   return <MainApp />;

@@ -461,6 +461,48 @@ def handle_post(
 
     raise HTTPException(status_code=400, detail="Invalid action")
 
+# Admin endpoints (simple register and password reset)
+class AdminRegisterRequest(BaseModel):
+    username: str
+    password: str
+
+class AdminResetPasswordRequest(BaseModel):
+    username: str
+    new_password: str
+
+@app.post("/admin/register", response_model=GenericResponse)
+def admin_register(request: AdminRegisterRequest, db: Session = Depends(get_db)):
+    """Simple registration - username and password only"""
+    # Check if username already exists
+    existing_user = db.query(User).filter(User.username == request.username).first()
+    if existing_user:
+        return GenericResponse(success=False, error="Username already exists")
+
+    # Create user
+    new_user = User(
+        username=request.username,
+        hashed_password=get_password_hash(request.password),
+        is_verified=True
+    )
+    db.add(new_user)
+    db.commit()
+
+    return GenericResponse(success=True, message=f"User '{request.username}' registered successfully")
+
+@app.post("/admin/reset-password", response_model=GenericResponse)
+def admin_reset_password(request: AdminResetPasswordRequest, db: Session = Depends(get_db)):
+    """Simple password reset - just username and new password"""
+    # Find user by username
+    user = db.query(User).filter(User.username == request.username).first()
+    if not user:
+        return GenericResponse(success=False, error="Username not found")
+
+    # Update password
+    user.hashed_password = get_password_hash(request.new_password)
+    db.commit()
+
+    return GenericResponse(success=True, message=f"Password for '{request.username}' has been reset")
+
 # Health check endpoint
 @app.get("/health")
 def health_check():

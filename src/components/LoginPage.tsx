@@ -1,18 +1,18 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, X, UserPlus } from 'lucide-react';
 
 interface LoginPageProps {
-  onRegister?: () => void;
   onForgotPassword?: () => void;
 }
 
-export function LoginPage({ onRegister, onForgotPassword }: LoginPageProps) {
+export function LoginPage({ onForgotPassword }: LoginPageProps) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showRegisterPopup, setShowRegisterPopup] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -124,22 +124,55 @@ export function LoginPage({ onRegister, onForgotPassword }: LoginPageProps) {
           </form>
 
           {/* Register Link */}
-          {onRegister && (
-            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <button
-                  onClick={onRegister}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Register here
-                </button>
-              </p>
-            </div>
-          )}
+          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => setShowRegisterPopup(true)}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Register here
+              </button>
+            </p>
+          </div>
 
         </div>
       </div>
+
+      {/* Register Popup */}
+      {showRegisterPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowRegisterPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-4">
+                <UserPlus className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Registration Required
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Please contact <span className="font-semibold text-blue-600">Unnayan Mishra</span> to register.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                He will provide you with your personalized credentials.
+              </p>
+              <button
+                onClick={() => setShowRegisterPopup(false)}
+                className="w-full px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
