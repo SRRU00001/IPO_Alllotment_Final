@@ -22,6 +22,7 @@ class Applicant(Base):
     name = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=True)
     pan = Column(String(10), nullable=True)
+    created_by = Column(Integer, nullable=True)  # Foreign key to users.id
     created_at = Column(DateTime, server_default=func.now())
 
 class IpoName(Base):
@@ -43,6 +44,7 @@ class IpoApplication(Base):
     money_sent = Column(Boolean, default=False)
     money_received = Column(Boolean, default=False)
     allotment_status = Column(String(20), default='Pending')  # Pending/Allotted/Not Allotted
+    created_by = Column(Integer, nullable=True)  # Foreign key to users.id
     created_at = Column(DateTime, server_default=func.now())
 
     # Unique constraint: user can only apply once per IPO

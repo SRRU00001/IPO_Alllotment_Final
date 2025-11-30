@@ -258,9 +258,11 @@ def handle_get(
 ):
     """Handle GET requests with action parameter"""
 
-    # List all applications with joined user/IPO data
+    # List all applications with joined user/IPO data (filtered by current user)
     if action == "list":
-        applications = db.query(IpoApplication).order_by(IpoApplication.created_at.desc()).all()
+        applications = db.query(IpoApplication).filter(
+            IpoApplication.created_by == current_user.id
+        ).order_by(IpoApplication.created_at.desc()).all()
         result = []
         for app in applications:
             applicant = db.query(Applicant).filter(Applicant.id == app.user_id).first()
@@ -273,16 +275,21 @@ def handle_get(
         ipos = db.query(IpoName).order_by(IpoName.name).all()
         return [ipo_to_dict(ipo) for ipo in ipos]
 
-    # List all applicants/users
+    # List all applicants/users (filtered by current user)
     elif action == "listUsers":
-        applicants = db.query(Applicant).order_by(Applicant.name).all()
+        applicants = db.query(Applicant).filter(
+            Applicant.created_by == current_user.id
+        ).order_by(Applicant.name).all()
         return [applicant_to_dict(a) for a in applicants]
 
-    # Get users already applied to a specific IPO
+    # Get users already applied to a specific IPO (filtered by current user)
     elif action == "getAppliedUsers":
         if not ipoName:
             raise HTTPException(status_code=400, detail="ipoName is required")
-        applications = db.query(IpoApplication).filter(IpoApplication.ipo_name == ipoName).all()
+        applications = db.query(IpoApplication).filter(
+            IpoApplication.ipo_name == ipoName,
+            IpoApplication.created_by == current_user.id
+        ).all()
         return [app.user_id for app in applications]
 
     raise HTTPException(status_code=400, detail="Invalid action")
@@ -311,6 +318,7 @@ def handle_post(
             name=name,
             phone=data.get("phone", "").strip(),
             pan=data.get("pan", "").strip().upper(),
+            created_by=current_user.id,  # Track who created this applicant
             created_at=datetime.utcnow()
         )
         db.add(new_applicant)
@@ -323,9 +331,12 @@ def handle_post(
         user_id = payload.get("id")
         data = payload.get("data", {})
 
-        applicant = db.query(Applicant).filter(Applicant.id == user_id).first()
+        applicant = db.query(Applicant).filter(
+            Applicant.id == user_id,
+            Applicant.created_by == current_user.id  # Only allow updating own applicants
+        ).first()
         if not applicant:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="User not found or access denied")
 
         if "phone" in data:
             applicant.phone = data["phone"].strip()
@@ -340,9 +351,12 @@ def handle_post(
     elif action == "deleteUser":
         user_id = payload.get("id")
 
-        applicant = db.query(Applicant).filter(Applicant.id == user_id).first()
+        applicant = db.query(Applicant).filter(
+            Applicant.id == user_id,
+            Applicant.created_by == current_user.id  # Only allow deleting own applicants
+        ).first()
         if not applicant:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="User not found or access denied")
 
         # Check if user has applications
         apps = db.query(IpoApplication).filter(IpoApplication.user_id == user_id).count()
@@ -391,8 +405,11 @@ def handle_post(
 
         created = []
         for user_id in user_ids:
-            # Check if user exists
-            applicant = db.query(Applicant).filter(Applicant.id == user_id).first()
+            # Check if user exists AND belongs to current user
+            applicant = db.query(Applicant).filter(
+                Applicant.id == user_id,
+                Applicant.created_by == current_user.id
+            ).first()
             if not applicant:
                 continue
 
@@ -412,6 +429,7 @@ def handle_post(
                 money_sent=False,
                 money_received=False,
                 allotment_status="Pending",
+                created_by=current_user.id,  # Track who created this application
                 created_at=datetime.utcnow()
             )
             db.add(new_app)
@@ -426,9 +444,12 @@ def handle_post(
         row_id = payload.get("id")
         data = payload.get("data", {})
 
-        app = db.query(IpoApplication).filter(IpoApplication.id == row_id).first()
+        app = db.query(IpoApplication).filter(
+            IpoApplication.id == row_id,
+            IpoApplication.created_by == current_user.id  # Only allow updating own applications
+        ).first()
         if not app:
-            raise HTTPException(status_code=404, detail="Application not found")
+            raise HTTPException(status_code=404, detail="Application not found or access denied")
 
         if "moneySent" in data:
             app.money_sent = bool(data["moneySent"])
@@ -451,9 +472,12 @@ def handle_post(
     elif action == "deleteRow":
         row_id = payload.get("id")
 
-        app = db.query(IpoApplication).filter(IpoApplication.id == row_id).first()
+        app = db.query(IpoApplication).filter(
+            IpoApplication.id == row_id,
+            IpoApplication.created_by == current_user.id  # Only allow deleting own applications
+        ).first()
         if not app:
-            raise HTTPException(status_code=404, detail="Application not found")
+            raise HTTPException(status_code=404, detail="Application not found or access denied")
 
         db.delete(app)
         db.commit()

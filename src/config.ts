@@ -4,7 +4,7 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD
     ? 'https://ipo-allotment-api-6y6d.onrender.com/api' // Production backend on Render
-    : 'http://localhost:9000/api' // Development fallback
+    : 'http://localhost:8000/api' // Development fallback - changed to port 8000
   );
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
