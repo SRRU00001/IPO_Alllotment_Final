@@ -79,20 +79,39 @@ class GenericResponse(BaseModel):
 # Temporary storage for pending registrations (in production use Redis)
 pending_registrations: dict[str, dict] = {}
 
-# Initialize default admin user on startup
+# Initialize default users on startup
 @app.on_event("startup")
-def create_default_user():
+def create_default_users():
     db = next(get_db())
     try:
-        existing = db.query(User).filter(User.username == "admin").first()
-        if not existing:
-            user = User(
+        # Create/update admin user
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(
                 username="admin",
-                hashed_password=get_password_hash("admin123")
+                hashed_password=get_password_hash("admin123"),
+                is_verified=True
             )
-            db.add(user)
-            db.commit()
+            db.add(admin)
             print("Default admin user created (username: admin, password: admin123)")
+
+        # Create/update Unnayan user - ALWAYS ensure this user exists with correct password
+        unnayan = db.query(User).filter(User.username == "Unnayan").first()
+        if not unnayan:
+            unnayan = User(
+                username="Unnayan",
+                hashed_password=get_password_hash("1234"),
+                is_verified=True
+            )
+            db.add(unnayan)
+            print("Unnayan user created (username: Unnayan, password: 1234)")
+        else:
+            # Reset password to ensure it's always 1234
+            unnayan.hashed_password = get_password_hash("1234")
+            unnayan.is_verified = True
+            print("Unnayan user password reset to 1234")
+
+        db.commit()
     finally:
         db.close()
 

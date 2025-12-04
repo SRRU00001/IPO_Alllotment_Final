@@ -14,10 +14,10 @@ if DATABASE_URL and DATABASE_URL.startswith(("postgresql", "postgres")):
         if DATABASE_URL.startswith("postgres://"):
             DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
         engine = create_engine(DATABASE_URL)
-        print("📊 Using PostgreSQL database")
+        print("Using PostgreSQL database")
     except ImportError:
         # psycopg2 not available, fall back to SQLite
-        print("⚠️  PostgreSQL not available, falling back to SQLite")
+        print("PostgreSQL not available, falling back to SQLite")
         DATABASE_URL = None
 
 if not DATABASE_URL or not DATABASE_URL.startswith("postgresql"):
@@ -28,7 +28,7 @@ if not DATABASE_URL or not DATABASE_URL.startswith("postgresql"):
         DATABASE_URL,
         connect_args={"check_same_thread": False}
     )
-    print(f"📊 Using SQLite database: {os.path.join(BASE_DIR, 'ipo_data.db')}")
+    print(f"Using SQLite database: {os.path.join(BASE_DIR, 'ipo_data.db')}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
