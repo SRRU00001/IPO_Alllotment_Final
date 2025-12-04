@@ -104,12 +104,34 @@ def create_default_users():
                 is_verified=True
             )
             db.add(unnayan)
+            db.commit()
+            db.refresh(unnayan)
             print("Unnayan user created (username: Unnayan, password: 1234)")
         else:
             # Reset password to ensure it's always 1234
             unnayan.hashed_password = get_password_hash("1234")
             unnayan.is_verified = True
             print("Unnayan user password reset to 1234")
+
+        # CRITICAL: Migrate all Unnayan's old data to current user ID
+        # This ensures all applicants and applications created by Unnayan are linked to him
+        print(f"Migrating Unnayan's data to user ID: {unnayan.id}")
+
+        # Get all user IDs that might be old Unnayan accounts
+        old_unnayan_ids = [user.id for user in db.query(User).filter(User.username == "Unnayan").all()]
+
+        # Update applicants - link NULL or old Unnayan IDs to current Unnayan
+        applicants_updated = db.query(Applicant).filter(
+            (Applicant.created_by == None) | (Applicant.created_by.in_(old_unnayan_ids))
+        ).update({"created_by": unnayan.id}, synchronize_session=False)
+
+        # Update applications - link NULL or old Unnayan IDs to current Unnayan
+        applications_updated = db.query(IpoApplication).filter(
+            (IpoApplication.created_by == None) | (IpoApplication.created_by.in_(old_unnayan_ids))
+        ).update({"created_by": unnayan.id}, synchronize_session=False)
+
+        if applicants_updated > 0 or applications_updated > 0:
+            print(f"Migrated {applicants_updated} applicants and {applications_updated} applications to Unnayan")
 
         db.commit()
     finally:
